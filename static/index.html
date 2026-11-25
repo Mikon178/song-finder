@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>聽歌尋曲小工具 · Song Finder</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <main class="container">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-icon" aria-hidden="true">♪</div>
+        <div>
+          <h1>聽歌尋曲小工具</h1>
+          <p class="subtitle">從一段音檔或一小段歌詞找歌 · 每次列出 1 個最符合 + 4 個可能選項與連結</p>
+        </div>
+      </div>
+      <button id="toggleSettingsBtn" class="btn-ghost" type="button" aria-expanded="false">
+        ⚙️ 選填 API 設定
+      </button>
+    </header>
+
+    <section id="settingsPanel" class="card settings-panel hidden" aria-label="選填 API 設定">
+      <div class="settings-header">
+        <h2>進階辨識引擎設定（完全選填）</h2>
+        <span class="badge-free">未填寫也可免 Key 直接使用</span>
+      </div>
+      <p class="settings-desc">
+        預設使用免費的 Shazam、LRCLIB、iTunes 與 Deezer 資料庫。若您想針對「純哼唱、清唱翻唱、模糊或翻譯歌詞」提升準確率，可選填以下金鑰（僅儲存在您的本機瀏覽器）：
+      </p>
+      <div class="settings-grid">
+        <label class="field">
+          <span>Gemini API Key（選填）</span>
+          <input id="geminiKeyInput" type="password" placeholder="AIza..." autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>AudD API Token（選填）</span>
+          <input id="auddTokenInput" type="password" placeholder="選填 AudD Token" autocomplete="off" />
+        </label>
+      </div>
+      <div class="settings-actions">
+        <button id="saveSettingsBtn" class="btn-secondary" type="button">儲存設定</button>
+        <button id="clearSettingsBtn" class="btn-ghost" type="button">清除金鑰</button>
+        <span id="settingsSavedMsg" class="saved-msg hidden">已儲存於本機瀏覽器</span>
+      </div>
+    </section>
+
+    <section class="card input-card">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="audio" role="tab" aria-selected="true" type="button">
+          🎵 音檔 / 錄音辨識
+        </button>
+        <button class="tab" data-tab="lyrics" role="tab" aria-selected="false" type="button">
+          📝 歌詞片段搜尋
+        </button>
+      </div>
+
+      <!-- Audio Tab -->
+      <div id="audioPanel" class="tab-panel active" role="tabpanel">
+        <div id="dropZone" class="drop-zone" tabindex="0">
+          <input id="audioFileInput" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.webm,.aac" hidden />
+          <div class="drop-icon">🎧</div>
+          <p class="drop-title">拖放音檔到此處，或 <button id="pickFileBtn" class="link-btn" type="button">選擇檔案</button></p>
+          <p class="drop-hint">支援 MP3、WAV、M4A、OGG、FLAC、WEBM（建議 5–30 秒清晰片段，最大 25 MB）</p>
+        </div>
+
+        <div class="divider-or"><span>或使用麥克風現場收音</span></div>
+
+        <div class="mic-bar">
+          <button id="recordBtn" class="btn-mic" type="button">
+            <span class="mic-dot"></span>
+            <span id="recordBtnText">開始錄音（最長 15 秒）</span>
+          </button>
+          <span id="recordTimer" class="record-timer hidden">00:00 / 00:15</span>
+        </div>
+
+        <div id="audioPreviewBox" class="audio-preview hidden">
+          <div class="preview-meta">
+            <span id="audioFileName" class="file-name">未選擇音檔</span>
+            <button id="clearAudioBtn" class="btn-ghost btn-sm" type="button">移除</button>
+          </div>
+          <audio id="localAudioPlayer" controls></audio>
+        </div>
+
+        <div class="submit-row">
+          <button id="identifyAudioBtn" class="btn-primary" type="button" disabled>
+            🔍 開始辨識這段音檔
+          </button>
+        </div>
+      </div>
+
+      <!-- Lyrics Tab -->
+      <div id="lyricsPanel" class="tab-panel" role="tabpanel">
+        <label class="field">
+          <span>輸入你記得的一小段歌詞（支援中、英、日、韓等多語系）</span>
+          <textarea
+            id="lyricsInput"
+            rows="4"
+            placeholder="例如：我們說好不分離 要一直一直在一起&#10;或：Never gonna give you up, never gonna let you down"
+          ></textarea>
+        </label>
+
+        <div class="example-chips">
+          <span class="chips-label">快速試用：</span>
+          <button class="chip" type="button" data-lyrics="我們說好不分離 要一直一直在一起">說好不分離...</button>
+          <button class="chip" type="button" data-lyrics="never gonna give you up never gonna let you down">Never gonna give you up...</button>
+          <button class="chip" type="button" data-lyrics="夢ならばどれほどよかったでしょう">夢ならばどれほど...</button>
+        </div>
+
+        <div class="submit-row">
+          <button id="identifyLyricsBtn" class="btn-primary" type="button">
+            🔍 搜尋最符合的歌曲
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading -->
+    <section id="loadingBox" class="card loading-box hidden" aria-live="polite">
+      <div class="equalizer" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <p id="loadingText">正在比對音訊指紋與音樂資料庫...</p>
+    </section>
+
+    <!-- Error / Notice -->
+    <section id="noticeBox" class="card notice-box hidden" aria-live="polite"></section>
+
+    <!-- Results -->
+    <section id="resultsSection" class="results-section hidden" aria-live="polite">
+      <div class="results-meta-bar">
+        <div id="enginesBadge" class="engines-badge"></div>
+      </div>
+
+      <div id="bestMatchContainer"></div>
+
+      <div id="possibleMatchesBlock" class="possible-block hidden">
+        <h2 class="section-heading">🔎 其他可能的選項（最多 4 個）</h2>
+        <div id="possibleMatchesGrid" class="possible-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
